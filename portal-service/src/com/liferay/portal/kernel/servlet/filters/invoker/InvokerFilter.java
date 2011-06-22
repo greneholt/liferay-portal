@@ -73,6 +73,7 @@ public class InvokerFilter implements Filter {
 		String uri = getURI(request);
 
 		System.out.println("DEBUG: doFilter: uri: " + uri);
+		System.out.println("DEBUG number two: doFilter: uri: " + uri);
 		
 		request.setAttribute(WebKeys.INVOKER_FILTER_URI, uri);
 
