@@ -1057,7 +1057,7 @@ release was successful.</echo>
 	</target>
 
 	<target name="unzip-weblogic">
-		<delete dir="${app.server.weblogic.server.dir}" />
+		<delete dir="${app.server.weblogic.dir}" />
 
 		<if>
 			<not>
@@ -1073,19 +1073,15 @@ release was successful.</echo>
 		</if>
 
 		<unzip
-			dest="${app.server.weblogic.server.dir}"
+			dest="${app.server.weblogic.dir}"
 			src="${app.server.parent.dir}/${app.server.weblogic.zip.name}"
 		/>
 
-		<condition property="isWindows">
-			<os family="windows" />
-		</condition>
-
 		<if>
-			<isset property="isWindows"/>
+			<os family="windows" />
 			<then>
-				<exec dir="${app.server.weblogic.server.dir}" executable="cmd">
-					<env key="MW_HOME" value="${app.server.weblogic.server.dir}"/>
+				<exec dir="${app.server.weblogic.dir}" executable="cmd">
+					<env key="MW_HOME" value="${app.server.weblogic.dir}" />
 					<arg value="/c" />
 					<arg value="configure.cmd" />
 				</exec>
@@ -1093,39 +1089,39 @@ release was successful.</echo>
 				<exec dir="tools/servers/weblogic" executable="cmd">
 					<arg value="/c" />
 					<arg value="create-weblogic-domain.bat" />
-					<arg value="${app.server.weblogic.server.dir}" />
-					<arg value="${app.server.weblogic.domains.dir}" />
-					<arg value="${app.server.weblogic.domain.name}" />
+					<arg value="${app.server.weblogic.dir}" />
+					<arg value="${app.server.weblogic.instance.dir}" />
+					<arg value="${app.server.weblogic.instance.name}" />
 				</exec>
 
-				<echo file="${app.server.weblogic.dir}/run.bat">@echo off
+				<echo file="${app.server.weblogic.instance.dir}/${app.server.weblogic.instance.name}/run.bat">@echo off
 
 set "USER_MEM_ARGS=-Xmx1024m -XX:PermSize=256m"
-set "MW_HOME=${app.server.weblogic.server.dir}"
+set "MW_HOME=${app.server.weblogic.dir}"
 
 call startWebLogic.cmd</echo>
 			</then>
 			<else>
-				<exec dir="${app.server.weblogic.server.dir}" executable="sh">
-					<env key="MW_HOME" value="${app.server.weblogic.server.dir}"/>
+				<exec dir="${app.server.weblogic.dir}" executable="sh">
+					<env key="MW_HOME" value="${app.server.weblogic.dir}" />
 					<arg value="configure.sh" />
 				</exec>
 
 				<exec dir="tools/servers/weblogic" executable="sh">
-					<arg value="create-weblogic-domain${file.suffix.bat}" />
-					<arg value="${app.server.weblogic.server.dir}" />
-					<arg value="${app.server.weblogic.domains.dir}" />
-					<arg value="${app.server.weblogic.domain.name}" />
+					<arg value="create-weblogic-domain.sh" />
+					<arg value="${app.server.weblogic.dir}" />
+					<arg value="${app.server.weblogic.instance.dir}" />
+					<arg value="${app.server.weblogic.instance.name}" />
 				</exec>
 
-				<echo file="${app.server.weblogic.dir}/run.sh">#!/bin/sh
+				<echo file="${app.server.weblogic.instance.dir}/${app.server.weblogic.instance.name}/run.sh">#!/bin/sh
 
 export USER_MEM_ARGS="-Xmx1024m -XX:PermSize=256m"
-export MW_HOME="${app.server.weblogic.server.dir}"
+export MW_HOME="${app.server.weblogic.dir}"
 
 sh startWebLogic.sh</echo>
 
-				<chmod file="${app.server.weblogic.dir}/run.sh" perm="750"/>
+				<chmod file="${app.server.weblogic.instance.dir}/${app.server.weblogic.instance.name}/run.sh" perm="750" />
 			</else>
 		</if>
 	</target>
