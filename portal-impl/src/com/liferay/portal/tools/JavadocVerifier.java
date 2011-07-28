@@ -44,14 +44,14 @@ import org.apache.tools.ant.DirectoryScanner;
 /**
  * Verifies required Javadoc tags and comments printing messages regarding any
  * that are missing.
- * 
+ *
  * @author James Hinkey
  */
 public class JavadocVerifier {
 
 	/**
 	 * Invokes the JavadocVerifier on a single Java file.
-	 * 
+	 *
 	 * @param args Should be -Dfile=SomeJavaFileName (omit file path and
 	 * suffix)
 	 */
@@ -66,7 +66,7 @@ public class JavadocVerifier {
 
 	/**
 	 * Verifies a single Java file.
-	 * 
+	 *
 	 * @param args Should be -Dfile=SomeJavaFileName (omit file path and
 	 * suffix)
 	 */
@@ -384,7 +384,8 @@ public class JavadocVerifier {
 		return StringUtil.merge(textArray, " ");
 	}
 
-	private void _verifyJavadoc(String baseDir, String fileName) throws Exception {
+	private void _verifyJavadoc(String baseDir, String fileName)
+	throws Exception {
 		FileInputStream fis = new FileInputStream(
 				new File(baseDir + fileName));
 

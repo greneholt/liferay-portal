@@ -14,11 +14,35 @@
 
 package com.liferay.portal.tools;
 
+import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
+import com.liferay.portal.kernel.util.StringPool;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.kernel.xml.Document;
+import com.liferay.portal.kernel.xml.Element;
+import com.liferay.portal.tools.servicebuilder.ServiceBuilder;
+import com.liferay.portal.util.FileImpl;
+import com.liferay.portal.xml.SAXReaderImpl;
+import com.liferay.util.xml.DocUtil;
+
+import com.thoughtworks.qdox.JavaDocBuilder;
+import com.thoughtworks.qdox.model.AbstractBaseJavaEntity;
+import com.thoughtworks.qdox.model.AbstractJavaEntity;
+import com.thoughtworks.qdox.model.Annotation;
+import com.thoughtworks.qdox.model.DocletTag;
+import com.thoughtworks.qdox.model.JavaClass;
+import com.thoughtworks.qdox.model.JavaField;
+import com.thoughtworks.qdox.model.JavaMethod;
+import com.thoughtworks.qdox.model.JavaPackage;
+import com.thoughtworks.qdox.model.JavaParameter;
+import com.thoughtworks.qdox.model.Type;
+
 import jargs.gnu.CmdLineParser;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.Reader;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,39 +56,17 @@ import java.util.regex.Pattern;
 
 import org.apache.tools.ant.DirectoryScanner;
 
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
-import com.liferay.portal.kernel.util.StringPool;
-import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.kernel.xml.Document;
-import com.liferay.portal.kernel.xml.Element;
-import com.liferay.portal.tools.servicebuilder.ServiceBuilder;
-import com.liferay.portal.util.FileImpl;
-import com.liferay.portal.xml.SAXReaderImpl;
-import com.liferay.util.xml.DocUtil;
-import com.thoughtworks.qdox.JavaDocBuilder;
-import com.thoughtworks.qdox.model.AbstractBaseJavaEntity;
-import com.thoughtworks.qdox.model.AbstractJavaEntity;
-import com.thoughtworks.qdox.model.Annotation;
-import com.thoughtworks.qdox.model.DocletTag;
-import com.thoughtworks.qdox.model.JavaClass;
-import com.thoughtworks.qdox.model.JavaField;
-import com.thoughtworks.qdox.model.JavaMethod;
-import com.thoughtworks.qdox.model.JavaPackage;
-import com.thoughtworks.qdox.model.JavaParameter;
-import com.thoughtworks.qdox.model.Type;
-
 /**
  * Modifies a file adding stubs for missing Javadoc, formatting all Javadoc
- * (including pre-existing), and adding the Override annotation where applicable. 
- * 
+ * (including pre-existing), and adding the Override annotation where applicable.
+ *
  * @author James Hinkey
  */
 public class JavadocStubber {
 
 	/**
 	 * Invokes the JavadocStubber on a single Java file.
-	 * 
+	 *
 	 * @param args Should be -Dfile=SomeJavaFileName (omit file path and
 	 * suffix)
 	 */
@@ -79,7 +81,7 @@ public class JavadocStubber {
 
 	/**
 	 * Stubs a single Java file.
-	 * 
+	 *
 	 * @param args Should be -Dfile=SomeJavaFileName (omit file path and
 	 * suffix)
 	 */
@@ -255,7 +257,8 @@ public class JavadocStubber {
 	}
 
 	private String _addDocletTags(
-			Element parentElement, String[] names, String indent, boolean isPublic) {
+			Element parentElement, String[] names, String indent,
+			boolean isPublic) {
 
 		StringBuilder sb = new StringBuilder();
 
@@ -352,8 +355,9 @@ public class JavadocStubber {
 		return sb.toString();
 	}
 
-	private String _addDocletTagsToComment(String comment,
-			Element fieldElement, String[] tagNames, String indent, boolean isPublic) {
+	private String _addDocletTagsToComment(
+		String comment, Element fieldElement, String[] tagNames, String indent,
+		boolean isPublic) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(indent);
@@ -552,8 +556,8 @@ public class JavadocStubber {
 		for (Type exception : exceptions) {
 			if (_isPublicEntity(javaMethod)) {
 				_addNamedElement(methodElement, throwsDocletTags,
-						exception.getJavaClass().getName(), exception.getValue(),
-						"throws", METHOD_THROWS_DESC);
+						exception.getJavaClass().getName(),
+						exception.getValue(), "throws", METHOD_THROWS_DESC);
 			}
 			else {
 				_addThrowsElement(methodElement, exception, throwsDocletTags);
@@ -605,7 +609,8 @@ public class JavadocStubber {
 		// Wrap special constants in code tags
 
 		text = text.replaceAll(
-				"(?i)(?<!<code>|\\w)(null|false|true)(?!\\w)", "<code>$1</code>");
+				"(?i)(?<!<code>|\\w)(null|false|true)(?!\\w)",
+				"<code>$1</code>");
 
 		return text;
 	}
@@ -962,7 +967,8 @@ public class JavadocStubber {
 	}
 
 	private boolean _hasAnnotation(
-			AbstractBaseJavaEntity abstractBaseJavaEntity, String annotationName) {
+			AbstractBaseJavaEntity abstractBaseJavaEntity,
+			String annotationName) {
 
 		Annotation[] annotations = abstractBaseJavaEntity.getAnnotations();
 
@@ -1342,17 +1348,28 @@ public class JavadocStubber {
 	}
 
 	private static final String CLASS_AUTHOR = "TODO your_name";
-	private static final String CLASS_DESC_DETAIL = " TODO Detailed description to include class's abilities (optional).";
-	private static final String CLASS_DESC_INITIAL = " TODO Initial description to introduce the class and its purpose.";
-	private static final String CLASS_USAGE_EXAMPLE = " TODO Example usage expressed explicitly here and/or referred to in another class (optional).";
+	private static final String CLASS_DESC_DETAIL =
+		" TODO Detailed description to include class's abilities (optional).";
+	private static final String CLASS_DESC_INITIAL =
+		" TODO Initial description to introduce the class and its purpose.";
+	private static final String CLASS_USAGE_EXAMPLE =
+		" TODO Example usage expressed explicitly here and/or referred to " +
+		"in another class (optional).";
 
-	private static final String FIELD_DESC = " TODO Field description. What does field represent or indicate?";
+	private static final String FIELD_DESC =
+		" TODO Field description. What does field represent or indicate?";
 
-	private static final String METHOD_DESC_DETAIL = " TODO Detailed description, reference links and/or examples (optional).";
-	private static final String METHOD_DESC_INITIAL = " TODO Initial description of method's purpose.";
-	private static final String METHOD_PARAM_DESC = " TODO Description, requirements, acceptable values";
-	private static final String METHOD_RETURN_DESC = " TODO What is returned? Any special return values?";
-	private static final String METHOD_THROWS_DESC = " TODO list exceptional conditions that could have occurred";
+	private static final String METHOD_DESC_DETAIL =
+		" TODO Detailed description, reference links and/or examples " +
+		"(optional).";
+	private static final String METHOD_DESC_INITIAL =
+		" TODO Initial description of method's purpose.";
+	private static final String METHOD_PARAM_DESC =
+		" TODO Description, requirements, acceptable values";
+	private static final String METHOD_RETURN_DESC =
+		" TODO What is returned? Any special return values?";
+	private static final String METHOD_THROWS_DESC =
+		" TODO list exceptional conditions that could have occurred";
 
 	private static FileImpl _fileUtil = FileImpl.getInstance();
 	private static SAXReaderImpl _saxReaderUtil = SAXReaderImpl.getInstance();
