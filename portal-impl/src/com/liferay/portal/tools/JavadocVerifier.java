@@ -69,12 +69,13 @@ public class JavadocVerifier {
 	 *
 	 * @param args Should be -Dfile=SomeJavaFileName (omit file path and
 	 * suffix)
+	 * @throws Exception if an exception occurred
 	 */
 	public JavadocVerifier(String[] args) throws Exception {
 		CmdLineParser cmdLineParser = new CmdLineParser();
 
 		CmdLineParser.Option fileOption = cmdLineParser.addStringOption(
-		"file");
+			"file");
 
 		cmdLineParser.parse(args);
 
@@ -84,7 +85,7 @@ public class JavadocVerifier {
 
 		ds.setBasedir(_basedir);
 		ds.setExcludes(
-				new String[] {"**\\classes\\**", "**\\portal-client\\**"});
+			new String[] {"**\\classes\\**", "**\\portal-client\\**"});
 
 		List<String> includes = new ArrayList<String>();
 
@@ -93,8 +94,8 @@ public class JavadocVerifier {
 
 			for (String curFile : fileArray) {
 				includes.add(
-						"**\\" + StringUtil.replace(curFile, ".", "\\") +
-				"\\**\\*.java");
+					"**\\" + StringUtil.replace(curFile, ".", "\\") +
+					"\\**\\*.java");
 				includes.add("**\\" + curFile + ".java");
 			}
 		}
@@ -109,8 +110,9 @@ public class JavadocVerifier {
 
 		String[] fileNames = ds.getIncludedFiles();
 
-		if ((fileNames.length == 0) && Validator.isNotNull(file) &&
-				!file.startsWith("$")) {
+		if ((fileNames.length == 0) &&
+			Validator.isNotNull(file) &&
+			!file.startsWith("$")) {
 
 			StringBuilder sb = new StringBuilder("File not found: ");
 
@@ -150,13 +152,14 @@ public class JavadocVerifier {
 		for (Type exception : exceptions) {
 			if (_isPublicEntity(javaMethod)) {
 				_checkNamedEntity(throwsDocletTags, javaMethod, "throws",
-						exception.getJavaClass().getName());
+					exception.getJavaClass().getName());
 			}
 		}
 	}
 
 	private void _checkField(JavaField javaField)
-	throws Exception {
+		throws Exception {
+
 		String comment = _getCDATA(javaField);
 
 		if (_isPublicEntity(javaField) && Validator.isNull(comment)) {
@@ -170,7 +173,8 @@ public class JavadocVerifier {
 	}
 
 	private void _checkMethod(JavaMethod javaMethod)
-	throws Exception {
+		throws Exception {
+
 		String comment = _getCDATA(javaMethod);
 
 		if (_isPublicEntity(javaMethod) && Validator.isNull(comment)) {
@@ -235,7 +239,7 @@ public class JavadocVerifier {
 	}
 
 	private void _checkReturn(JavaMethod javaMethod)
-	throws Exception {
+		throws Exception {
 
 		Type returns = javaMethod.getReturns();
 
@@ -247,9 +251,8 @@ public class JavadocVerifier {
 			DocletTag[] returnDocletTags = javaMethod.getTagsByName("return");
 
 			if (returnDocletTags.length == 0 ||
-				returnDocletTags[0].getValue() == null ||
-				returnDocletTags[0].getValue().trim().isEmpty())
-			{
+				Validator.isNull(returnDocletTags[0].getValue())) {
+				
 				StringBuffer sb = new StringBuffer();
 				sb.append("missing return comment for ");
 				sb.append(javaMethod.getName());
@@ -270,10 +273,10 @@ public class JavadocVerifier {
 		}
 
 		cdata = cdata.replaceAll(
-				"(?s)\\s*<(p|pre|[ou]l)>\\s*(.*?)\\s*</\\1>\\s*",
-		"\n\n<$1>\n$2\n</$1>\n\n");
+			"(?s)\\s*<(p|pre|[ou]l)>\\s*(.*?)\\s*</\\1>\\s*",
+			"\n\n<$1>\n$2\n</$1>\n\n");
 		cdata = cdata.replaceAll(
-				"(?s)\\s*<li>\\s*(.*?)\\s*</li>\\s*", "\n<li>\n$1\n</li>\n");
+			"(?s)\\s*<li>\\s*(.*?)\\s*</li>\\s*", "\n<li>\n$1\n</li>\n");
 		cdata = StringUtil.replace(cdata, "</li>\n\n<li>", "</li>\n<li>");
 		cdata = cdata.replaceAll("\n\\s+\n", "\n\n");
 		cdata = cdata.replaceAll(" +", " ");
@@ -281,7 +284,7 @@ public class JavadocVerifier {
 		// Trim whitespace inside paragraph tags or in the first paragraph
 
 		Pattern pattern = Pattern.compile(
-				"(^.*?(?=\n\n|$)+|(?<=<p>\n).*?(?=\n</p>))", Pattern.DOTALL);
+			"(^.*?(?=\n\n|$)+|(?<=<p>\n).*?(?=\n</p>))", Pattern.DOTALL);
 
 		Matcher matcher = pattern.matcher(cdata);
 
@@ -324,11 +327,11 @@ public class JavadocVerifier {
 		String srcFile = fileName.substring(pos + 1, fileName.length());
 
 		return StringUtil.replace(
-				srcFile.substring(0, srcFile.length() - 5), "/", ".");
+			srcFile.substring(0, srcFile.length() - 5), "/", ".");
 	}
 
 	private JavaClass _getJavaClass(String fileName, Reader reader)
-	throws Exception {
+		throws Exception {
 
 		String className = _getClassName(fileName);
 
@@ -385,9 +388,10 @@ public class JavadocVerifier {
 	}
 
 	private void _verifyJavadoc(String baseDir, String fileName)
-	throws Exception {
+		throws Exception {
+
 		FileInputStream fis = new FileInputStream(
-				new File(baseDir + fileName));
+			new File(baseDir + fileName));
 
 		byte[] bytes = new byte[fis.available()];
 
@@ -398,15 +402,14 @@ public class JavadocVerifier {
 		String originalContent = new String(bytes);
 
 		if (fileName.endsWith("JavadocFormatter.java") ||
-				fileName.endsWith("SourceFormatter.java") ||
-
-				_isGenerated(originalContent)) {
+			fileName.endsWith("SourceFormatter.java") ||
+			_isGenerated(originalContent)) {
 
 			return;
 		}
 
 		JavaClass javaClass = _getJavaClass(
-				fileName, new UnsyncStringReader(originalContent));
+			fileName, new UnsyncStringReader(originalContent));
 
 		_checkClassEntity(javaClass);
 

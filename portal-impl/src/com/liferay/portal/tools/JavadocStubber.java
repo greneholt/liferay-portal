@@ -84,12 +84,13 @@ public class JavadocStubber {
 	 *
 	 * @param args Should be -Dfile=SomeJavaFileName (omit file path and
 	 * suffix)
+	 * @throws Exception if an exception occurred
 	 */
 	public JavadocStubber(String[] args) throws Exception {
 		CmdLineParser cmdLineParser = new CmdLineParser();
 
 		CmdLineParser.Option fileOption = cmdLineParser.addStringOption(
-		"file");
+			"file");
 
 		cmdLineParser.parse(args);
 
@@ -99,7 +100,7 @@ public class JavadocStubber {
 
 		ds.setBasedir(_basedir);
 		ds.setExcludes(
-				new String[] {"**\\classes\\**", "**\\portal-client\\**"});
+			new String[] {"**\\classes\\**", "**\\portal-client\\**"});
 
 		List<String> includes = new ArrayList<String>();
 
@@ -108,8 +109,9 @@ public class JavadocStubber {
 
 			for (String curFile : fileArray) {
 				includes.add(
-						"**\\" + StringUtil.replace(curFile, ".", "\\") +
-				"\\**\\*.java");
+					"**\\" + StringUtil.replace(curFile, ".", "\\") +
+					"\\**\\*.java");
+
 				includes.add("**\\" + curFile + ".java");
 			}
 		}
@@ -124,8 +126,9 @@ public class JavadocStubber {
 
 		String[] fileNames = ds.getIncludedFiles();
 
-		if ((fileNames.length == 0) && Validator.isNotNull(file) &&
-				!file.startsWith("$")) {
+		if ((fileNames.length == 0) &&
+			Validator.isNotNull(file) &&
+			!file.startsWith("$")) {
 
 			StringBuilder sb = new StringBuilder("File not found: ");
 
@@ -163,7 +166,7 @@ public class JavadocStubber {
 	private void _addDocletElements(
 			Element parentElement, AbstractJavaEntity abstractJavaEntity,
 			String name)
-	throws Exception {
+		throws Exception {
 
 		DocletTag[] docletTags = abstractJavaEntity.getTagsByName(name);
 
@@ -189,7 +192,7 @@ public class JavadocStubber {
 	private void _addDocletElements(
 			Element parentElement, AbstractJavaEntity abstractJavaEntity,
 			String name, String defaultComment)
-	throws Exception {
+		throws Exception {
 
 		if (name.equals("deprecated") && !_isDeprecated(abstractJavaEntity)) {
 			return;
@@ -229,22 +232,22 @@ public class JavadocStubber {
 		}
 	}
 
-	private void _addDocletMethodReturnElement(Element methodElement,
-			JavaMethod javaMethod) {
+	private void _addDocletMethodReturnElement(
+			Element methodElement, JavaMethod javaMethod) {
+
 		DocletTag[] returnDocletTags = javaMethod.getTagsByName("return");
 
 		String value = null;
 		if (returnDocletTags.length == 0) {
 			value = METHOD_RETURN_DESC;
 		} else {
+
 			// initial population of value from tag
+
 			value = returnDocletTags[0].getValue();
-			if (value == null) {
+
+			if (Validator.isNull(value)) {
 				value = METHOD_RETURN_DESC;
-			} else {
-				if (value.trim().isEmpty()) {
-					value = METHOD_RETURN_DESC;
-				}
 			}
 		}
 
@@ -319,7 +322,6 @@ public class JavadocStubber {
 				}
 
 				if (!name.equals("deprecated") && Validator.isNull(comment)) {
-
 					continue;
 				}
 
@@ -329,6 +331,7 @@ public class JavadocStubber {
 
 				if (commentElement != null) {
 					String elementName = element.elementText("name");
+
 					if (Validator.isNotNull(elementName)) {
 						comment = elementName + " " + comment;
 					}
@@ -345,7 +348,8 @@ public class JavadocStubber {
 
 					String firstLine = indent + "@" + name;
 
-					comment = firstLine + comment.substring(firstLine.length());
+					comment = firstLine +
+							comment.substring(firstLine.length());
 
 					sb.append(comment);
 				}
@@ -358,16 +362,17 @@ public class JavadocStubber {
 	private String _addDocletTagsToComment(
 		String comment, Element fieldElement, String[] tagNames, String indent,
 		boolean isPublic) {
+
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(indent);
 		sb.append("/**\n");
 
 		String docletTags = _addDocletTags(
-				fieldElement,
-				tagNames,
-				indent + " * ",
-				isPublic);
+			fieldElement,
+			tagNames,
+			indent + " * ",
+			isPublic);
 
 		if (Validator.isNotNull(comment) && !comment.isEmpty()) {
 			sb.append(_wrapText(comment, indent + " * "));
@@ -381,7 +386,7 @@ public class JavadocStubber {
 
 			sb.append(docletTags);
 		} else {
-			if (Validator.isNull(comment) || comment.isEmpty()) {
+			if (Validator.isNull(comment)) {
 				return null;
 			}
 		}
@@ -394,7 +399,7 @@ public class JavadocStubber {
 	}
 
 	private void _addFieldElement(Element rootElement, JavaField javaField)
-	throws Exception {
+		throws Exception {
 
 		Element fieldElement = rootElement.addElement("field");
 
@@ -410,7 +415,7 @@ public class JavadocStubber {
 	}
 
 	private void _addMethodElement(Element rootElement, JavaMethod javaMethod)
-	throws Exception {
+		throws Exception {
 
 		Element methodElement = rootElement.addElement("method");
 
@@ -454,7 +459,7 @@ public class JavadocStubber {
 		DocUtil.add(element, "type", elemType);
 
 		if (Validator.isNotNull(defaultValue)) {
-			if (value == null) {
+			if (Validator.isNull(value)) {
 				value = defaultValue;
 			} else {
 				value = value.substring(elemName.length());
@@ -523,14 +528,15 @@ public class JavadocStubber {
 						METHOD_PARAM_DESC);
 			}
 			else {
-				_addParamElement(methodElement, javaParameter, paramDocletTags);
+				_addParamElement(
+					methodElement, javaParameter, paramDocletTags);
 			}
 		}
 	}
 
 	private void _addReturnElement(
 			Element methodElement, JavaMethod javaMethod)
-	throws Exception {
+		throws Exception {
 
 		Type returns = javaMethod.getReturns();
 
@@ -555,9 +561,10 @@ public class JavadocStubber {
 
 		for (Type exception : exceptions) {
 			if (_isPublicEntity(javaMethod)) {
-				_addNamedElement(methodElement, throwsDocletTags,
-						exception.getJavaClass().getName(),
-						exception.getValue(), "throws", METHOD_THROWS_DESC);
+				_addNamedElement(
+					methodElement, throwsDocletTags,
+					exception.getJavaClass().getName(),
+					exception.getValue(), "throws", METHOD_THROWS_DESC);
 			}
 			else {
 				_addThrowsElement(methodElement, exception, throwsDocletTags);
@@ -609,8 +616,8 @@ public class JavadocStubber {
 		// Wrap special constants in code tags
 
 		text = text.replaceAll(
-				"(?i)(?<!<code>|\\w)(null|false|true)(?!\\w)",
-				"<code>$1</code>");
+			"(?i)(?<!<code>|\\w)(null|false|true)(?!\\w)",
+			"<code>$1</code>");
 
 		return text;
 	}
@@ -635,10 +642,11 @@ public class JavadocStubber {
 		}
 
 		cdata = cdata.replaceAll(
-				"(?s)\\s*<(p|pre|[ou]l)>\\s*(.*?)\\s*</\\1>\\s*",
-		"\n\n<$1>\n$2\n</$1>\n\n");
+			"(?s)\\s*<(p|pre|[ou]l)>\\s*(.*?)\\s*</\\1>\\s*",
+			"\n\n<$1>\n$2\n</$1>\n\n");
 		cdata = cdata.replaceAll(
-				"(?s)\\s*<li>\\s*(.*?)\\s*</li>\\s*", "\n<li>\n$1\n</li>\n");
+			"(?s)\\s*<li>\\s*(.*?)\\s*</li>\\s*", "\n<li>\n$1\n</li>\n");
+
 		cdata = StringUtil.replace(cdata, "</li>\n\n<li>", "</li>\n<li>");
 		cdata = cdata.replaceAll("\n\\s+\n", "\n\n");
 		cdata = cdata.replaceAll(" +", " ");
@@ -646,7 +654,7 @@ public class JavadocStubber {
 		// Trim whitespace inside paragraph tags or in the first paragraph
 
 		Pattern pattern = Pattern.compile(
-				"(^.*?(?=\n\n|$)+|(?<=<p>\n).*?(?=\n</p>))", Pattern.DOTALL);
+			"(^.*?(?=\n\n|$)+|(?<=<p>\n).*?(?=\n</p>))", Pattern.DOTALL);
 
 		Matcher matcher = pattern.matcher(cdata);
 
@@ -689,7 +697,7 @@ public class JavadocStubber {
 		String srcFile = fileName.substring(pos + 1, fileName.length());
 
 		return StringUtil.replace(
-				srcFile.substring(0, srcFile.length() - 5), "/", ".");
+			srcFile.substring(0, srcFile.length() - 5), "/", ".");
 	}
 
 	private String _getFieldKey(Element fieldElement) {
@@ -735,7 +743,7 @@ public class JavadocStubber {
 	}
 
 	private JavaClass _getJavaClass(String fileName, Reader reader)
-	throws Exception {
+		throws Exception {
 
 		String className = _getClassName(fileName);
 
@@ -765,7 +773,6 @@ public class JavadocStubber {
 		String comment = rootElement.elementText("comment");
 
 		if (Validator.isNull(comment) ||
-			comment.isEmpty() ||
 			comment.trim().startsWith("Copyright"))
 		{
 			StringBuffer desc_sb = new StringBuffer(CLASS_DESC_INITIAL);
@@ -784,8 +791,9 @@ public class JavadocStubber {
 				"author", "version", "see", "since", "serial", "deprecated"
 		};
 
-		comment = _addDocletTagsToComment(comment, rootElement, tagNames,
-				indent, _isPublicEntity(javaClass));
+		comment = _addDocletTagsToComment(
+			comment, rootElement, tagNames,	indent,
+			_isPublicEntity(javaClass));
 		return comment;
 	}
 
@@ -813,7 +821,9 @@ public class JavadocStubber {
 		return lineNumber;
 	}
 
-	private Document _getJavadocDocument(JavaClass javaClass) throws Exception {
+	private Document _getJavadocDocument(JavaClass javaClass)
+		throws Exception {
+
 		Element rootElement = _saxReaderUtil.createElement("javadoc");
 
 		Document document = _saxReaderUtil.createDocument(rootElement);
@@ -872,8 +882,9 @@ public class JavadocStubber {
 
 		String indent = _getIndent(lines, javaField);
 
-		comment = _addDocletTagsToComment(comment, fieldElement, tagNames,
-				indent, _isPublicEntity(javaField));
+		comment = _addDocletTagsToComment(
+			comment, fieldElement, tagNames, indent,
+			_isPublicEntity(javaField));
 
 		return comment;
 	}
@@ -899,9 +910,7 @@ public class JavadocStubber {
 				"deprecated"
 		};
 
-		if (_isPublicEntity(javaMethod) &&
-			(Validator.isNull(comment) || comment.isEmpty()))
-		{
+		if (_isPublicEntity(javaMethod) && Validator.isNull(comment)) {
 			StringBuffer desc_sb = new StringBuffer(METHOD_DESC_INITIAL);
 			desc_sb.append("\n");
 			desc_sb.append("\n");
@@ -910,8 +919,9 @@ public class JavadocStubber {
 			comment = desc_sb.toString();
 		}
 
-		comment = _addDocletTagsToComment(comment, methodElement, tagNames,
-				indent, _isPublicEntity(javaMethod));
+		comment = _addDocletTagsToComment(
+			comment, methodElement, tagNames, indent,
+			_isPublicEntity(javaMethod));
 
 		return comment;
 	}
@@ -999,7 +1009,8 @@ public class JavadocStubber {
 			for (int ii=0; ii<annotations.length; ii++) {
 
 				if ("java.lang.Deprecated".equals(
-						annotations[ii].getType().getFullyQualifiedName())) {
+					annotations[ii].getType().getFullyQualifiedName())) {
+
 					isDeprecated = true;
 
 					break;
@@ -1022,8 +1033,10 @@ public class JavadocStubber {
 			JavaClass javaClass, JavaMethod javaMethod,
 			Collection<JavaClass> ancestorJavaClasses) {
 
-		if (javaClass.isInterface() || javaMethod.isConstructor() ||
-				javaMethod.isPrivate() || javaMethod.isStatic()) {
+		if (javaClass.isInterface() ||
+			javaMethod.isConstructor() ||
+			javaMethod.isPrivate() ||
+			javaMethod.isStatic()) {
 
 			return false;
 		}
@@ -1054,7 +1067,7 @@ public class JavadocStubber {
 
 			if (ancestorJavaPackage != null) {
 				samePackage = ancestorJavaPackage.equals(
-						javaClass.getPackage());
+					javaClass.getPackage());
 			}
 
 			// Check if the method is in scope
@@ -1064,7 +1077,7 @@ public class JavadocStubber {
 			}
 			else {
 				if (ancestorJavaMethod.isProtected() ||
-						ancestorJavaMethod.isPublic()) {
+					ancestorJavaMethod.isPublic()) {
 
 					return true;
 				}
@@ -1080,7 +1093,9 @@ public class JavadocStubber {
 	private boolean _isPublicEntity(AbstractJavaEntity javaEntity) {
 
 		boolean isPublic = false;
+
 		String[] modifiers = javaEntity.getModifiers();
+
 		if (modifiers != null) {
 			for (int ii=0; ii<modifiers.length; ii++) {
 				if (modifiers[ii].equals("public")) {
@@ -1166,25 +1181,24 @@ public class JavadocStubber {
 		String originalContent = new String(bytes);
 
 		if (fileName.endsWith("JavadocFormatter.java") ||
-				fileName.endsWith("JavadocStubber.java") ||
-				fileName.endsWith("JavadocVerifier.java") ||
-				fileName.endsWith("SourceFormatter.java") ||
-
-				_isGenerated(originalContent)) {
+			fileName.endsWith("JavadocStubber.java") ||
+			fileName.endsWith("JavadocVerifier.java") ||
+			fileName.endsWith("SourceFormatter.java") ||
+			_isGenerated(originalContent)) {
 
 			return;
 		}
 
 		JavaClass javaClass = _getJavaClass(
-				fileName, new UnsyncStringReader(originalContent));
+			fileName, new UnsyncStringReader(originalContent));
 
 		String javadocLessContent = _removeJavadocFromJava(
-				javaClass, originalContent);
+			javaClass, originalContent);
 
 		Document document = _getJavadocDocument(javaClass);
 
 		_updateJavaFromDocument(
-				fileName, originalContent, javadocLessContent, document);
+			fileName, originalContent, javadocLessContent, document);
 	}
 
 	private String _trimMultilineText(String text) {
@@ -1200,23 +1214,23 @@ public class JavadocStubber {
 	private void _updateJavaFromDocument(
 			String fileName, String originalContent, String javadocLessContent,
 			Document document)
-	throws Exception {
+		throws Exception {
 
 		String[] lines = StringUtil.split(javadocLessContent, "\n");
 
 		JavaClass javaClass = _getJavaClass(
-				fileName, new UnsyncStringReader(javadocLessContent));
+			fileName, new UnsyncStringReader(javadocLessContent));
 
 		List<JavaClass> ancestorJavaClasses = _getAncestorJavaClasses(
-				javaClass);
+			javaClass);
 
 		Element rootElement = document.getRootElement();
 
 		Map<Integer, String> commentsMap = new TreeMap<Integer, String>();
 
 		commentsMap.put(
-				_getJavaClassLineNumber(javaClass),
-				_getJavaClassComment(rootElement, javaClass));
+			_getJavaClassLineNumber(javaClass),
+			_getJavaClassComment(rootElement, javaClass));
 
 		Map<String, Element> methodElementsMap = new HashMap<String, Element>();
 
@@ -1236,13 +1250,13 @@ public class JavadocStubber {
 			}
 
 			String javaMethodComment = _getJavaMethodComment(
-					lines, methodElementsMap, javaMethod);
+				lines, methodElementsMap, javaMethod);
 
 			// Handle override tag insertion
 
 			if (!_hasAnnotation(javaMethod, "Override")) {
 				if (_isOverrideMethod(
-						javaClass, javaMethod, ancestorJavaClasses)) {
+					javaClass, javaMethod, ancestorJavaClasses)) {
 
 					String overrideLine =
 						_getIndent(lines, javaMethod) + "@Override\n";
@@ -1277,8 +1291,8 @@ public class JavadocStubber {
 			}
 
 			commentsMap.put(
-					javaField.getLineNumber(),
-					_getJavaFieldComment(lines, fieldElementsMap, javaField));
+				javaField.getLineNumber(),
+				_getJavaFieldComment(lines, fieldElementsMap, javaField));
 		}
 
 		StringBuilder sb = new StringBuilder(javadocLessContent.length());
@@ -1314,7 +1328,7 @@ public class JavadocStubber {
 
 		if (text.contains("<pre>")) {
 			Pattern pattern = Pattern.compile(
-					"(?<=^|</pre>).+?(?=$|<pre>)", Pattern.DOTALL);
+				"(?<=^|</pre>).+?(?=$|<pre>)", Pattern.DOTALL);
 
 			Matcher matcher = pattern.matcher(text);
 
@@ -1324,7 +1338,7 @@ public class JavadocStubber {
 				String wrapped = _formatInlines(matcher.group());
 
 				wrapped = StringUtil.wrap(
-						wrapped, 80 - indentLength, "\n");
+					wrapped, 80 - indentLength, "\n");
 
 				matcher.appendReplacement(sb, wrapped);
 			}
