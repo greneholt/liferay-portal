@@ -90,7 +90,7 @@ public class JavadocVerifier {
 		List<String> includes = new ArrayList<String>();
 
 		if (Validator.isNotNull(file) && !file.startsWith("$")) {
-			String[] fileArray = StringUtil.split(file, "/");
+			String[] fileArray = StringUtil.split(file, '/');
 
 			for (String curFile : fileArray) {
 				includes.add(
@@ -378,7 +378,7 @@ public class JavadocVerifier {
 	}
 
 	private String _trimMultilineText(String text) {
-		String[] textArray = StringUtil.split(text, "\n");
+		String[] textArray = StringUtil.splitLines(text);
 
 		for (int i = 0; i < textArray.length; i++) {
 			textArray[i] = textArray[i].trim();

@@ -105,7 +105,7 @@ public class JavadocStubber {
 		List<String> includes = new ArrayList<String>();
 
 		if (Validator.isNotNull(file) && !file.startsWith("$")) {
-			String[] fileArray = StringUtil.split(file, "/");
+			String[] fileArray = StringUtil.split(file, '/');
 
 			for (String curFile : fileArray) {
 				includes.add(
@@ -1126,7 +1126,7 @@ public class JavadocStubber {
 			lineNumbers.add(javaField.getLineNumber());
 		}
 
-		String[] lines = StringUtil.split(content, "\n");
+		String[] lines = StringUtil.splitLines(content);
 
 		for (int lineNumber : lineNumbers) {
 			if (lineNumber == 0) {
@@ -1202,7 +1202,7 @@ public class JavadocStubber {
 	}
 
 	private String _trimMultilineText(String text) {
-		String[] textArray = StringUtil.split(text, "\n");
+		String[] textArray = StringUtil.splitLines(text);
 
 		for (int i = 0; i < textArray.length; i++) {
 			textArray[i] = textArray[i].trim();
@@ -1216,7 +1216,7 @@ public class JavadocStubber {
 			Document document)
 		throws Exception {
 
-		String[] lines = StringUtil.split(javadocLessContent, "\n");
+		String[] lines = StringUtil.splitLines(javadocLessContent);
 
 		JavaClass javaClass = _getJavaClass(
 			fileName, new UnsyncStringReader(javadocLessContent));
