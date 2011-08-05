@@ -14,6 +14,7 @@
 
 package com.liferay.portal.tools;
 
+import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -561,10 +562,21 @@ public class JavadocStubber {
 
 		for (Type exception : exceptions) {
 			if (_isPublicEntity(javaMethod)) {
+				String comment = null;
+
+				String className = exception.getJavaClass().
+					getFullyQualifiedName();
+
+				if (SYSTEM_CLASS_NAME.equals(className)) {
+					comment = METHOD_THROWS_SYSTEM_EXCEPTION_DESC;
+				} else {
+					comment = METHOD_THROWS_DESC;
+				}
+
 				_addNamedElement(
 					methodElement, throwsDocletTags,
 					exception.getJavaClass().getName(),
-					exception.getValue(), "throws", METHOD_THROWS_DESC);
+					exception.getValue(), "throws", comment);
 			}
 			else {
 				_addThrowsElement(methodElement, exception, throwsDocletTags);
@@ -1384,6 +1396,11 @@ public class JavadocStubber {
 		" TODO What is returned? Any special return values?";
 	private static final String METHOD_THROWS_DESC =
 		" TODO list exceptional conditions that could have occurred";
+	private static final String METHOD_THROWS_SYSTEM_EXCEPTION_DESC =
+		" if a system exception occurred";
+
+	private static final String SYSTEM_CLASS_NAME =
+		SystemException.class.getName();
 
 	private static FileImpl _fileUtil = FileImpl.getInstance();
 	private static SAXReaderImpl _saxReaderUtil = SAXReaderImpl.getInstance();
