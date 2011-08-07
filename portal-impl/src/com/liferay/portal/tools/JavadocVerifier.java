@@ -137,9 +137,14 @@ public class JavadocVerifier {
 
 		String comment = _getCDATA(javaClass);
 
-		if (_isPublicEntity(javaClass) && Validator.isNull(comment)) {
-			System.out.println("missing class comment for " +
-				javaClass.getName() + " line " + javaClass.getLineNumber());
+		if (_isPublicEntity(javaClass)) {
+			if (Validator.isNull(comment)) {
+				System.out.println("missing class comment for " +
+					javaClass.getName() + " line " +
+					javaClass.getLineNumber());
+			} else {
+				_checkTodos(javaClass, comment);
+			}
 		}
 	}
 
@@ -177,13 +182,17 @@ public class JavadocVerifier {
 
 		String comment = _getCDATA(javaMethod);
 
-		if (_isPublicEntity(javaMethod) && Validator.isNull(comment)) {
-			StringBuffer sb = new StringBuffer();
-			sb.append("missing method comment for ");
-			sb.append(javaMethod.getName());
-			sb.append(" line ");
-			sb.append(javaMethod.getLineNumber());
-			System.out.println(sb.toString());
+		if (_isPublicEntity(javaMethod)) {
+			if (Validator.isNull(comment)) {
+				StringBuffer sb = new StringBuffer();
+				sb.append("missing method comment for ");
+				sb.append(javaMethod.getName());
+				sb.append(" line ");
+				sb.append(javaMethod.getLineNumber());
+				System.out.println(sb.toString());
+			} else {
+				_checkTodos(javaMethod, comment);
+			}
 		}
 
 		_checkParams(javaMethod);
@@ -222,6 +231,9 @@ public class JavadocVerifier {
 			sb.append(parentEntity.getLineNumber());
 			System.out.println(sb.toString());
 		}
+		else if (!_checkTodos(parentEntity, value)) {
+			_checkPeriods(parentEntity, value);
+		}
 	}
 
 	private void _checkParams(JavaMethod javaMethod) {
@@ -235,6 +247,19 @@ public class JavadocVerifier {
 				_checkNamedEntity(paramDocletTags,	javaMethod, "param",
 					javaParameter.getName());
 			}
+		}
+	}
+
+	private boolean _checkPeriods(AbstractJavaEntity javaEntity,
+			String comment) {
+
+		if (comment.endsWith(".")) {
+			System.out.println("\'.\' to remove at end of comment for " +
+				javaEntity.getName() + " line " +
+				javaEntity.getLineNumber());
+			return true;
+		} else {
+			return false;
 		}
 	}
 
@@ -252,7 +277,7 @@ public class JavadocVerifier {
 
 			if (returnDocletTags.length == 0 ||
 				Validator.isNull(returnDocletTags[0].getValue())) {
-				
+
 				StringBuffer sb = new StringBuffer();
 				sb.append("missing return comment for ");
 				sb.append(javaMethod.getName());
@@ -260,6 +285,48 @@ public class JavadocVerifier {
 				sb.append(javaMethod.getLineNumber());
 				System.out.println(sb.toString());
 			}
+			else if (!_checkTodos(javaMethod,
+				returnDocletTags[0].getValue())) {
+
+				_checkPeriods(javaMethod, returnDocletTags[0].getValue());
+			}
+		}
+	}
+
+	private boolean _checkTodos(AbstractJavaEntity javaEntity,
+			String comment) {
+
+		if (comment.contains("TODO")) {
+			System.out.println("TODO in comment for " +
+				javaEntity.getName() + " line " +
+				javaEntity.getLineNumber());
+			return true;
+		} else if (comment.contains("something")) {
+			System.out.println(
+				"\"something\" to replace in comment for " +
+				javaEntity.getName() + " line " +
+				javaEntity.getLineNumber());
+			return true;
+		} else if (comment.contains("someParam")) {
+			System.out.println(
+				"\"someParam\" to replace in comment for " +
+				javaEntity.getName() + " line " +
+				javaEntity.getLineNumber());
+			return true;
+		} else if (comment.contains("?")) {
+			System.out.println(
+				"\'?\' to address in comment for " +
+				javaEntity.getName() + " line " +
+				javaEntity.getLineNumber());
+			return true;
+		} else if (comment.contains("[") || comment.contains("]")) {
+			System.out.println(
+				"\"[ ]\" to replace in comment for " +
+				javaEntity.getName() + " line " +
+				javaEntity.getLineNumber());
+			return true;
+		} else {
+			return false;
 		}
 	}
 

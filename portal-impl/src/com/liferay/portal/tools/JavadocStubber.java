@@ -150,6 +150,35 @@ public class JavadocStubber {
 		}
 	}
 
+	static private String splitCamelCase(String s) {
+		String text =
+		 s.replaceAll(
+			String.format("%s|%s|%s",
+				"(?<=[A-Z])(?=[A-Z][a-z])",
+				"(?<=[^A-Z])(?=[A-Z])",
+				"(?<=[A-Za-z])(?=[^A-Za-z])"
+			),
+			" "
+		);
+
+		String[] splitText = StringUtil.split(text, StringPool.BLANK);
+		if (splitText.length > 1) {
+			StringBuffer sb = new StringBuffer();
+			sb.append(splitText[0]);
+			for (int ii = 1; ii < splitText.length; ii++) {
+				sb.append(StringPool.BLANK);
+				if (Pattern.matches("^.*[a-z]+.*$", splitText[ii])) {
+					sb.append(splitText[ii].toLowerCase());
+				} else {
+					sb.append(splitText[ii]);
+				}
+			}
+			return sb.toString();
+		} else {
+			return text;
+		}
+	}
+
 	private void _addClassCommentElement(
 			Element rootElement, JavaClass javaClass) {
 
@@ -240,7 +269,7 @@ public class JavadocStubber {
 
 		String value = null;
 		if (returnDocletTags.length == 0) {
-			value = METHOD_RETURN_DESC;
+			value = _getReturnComment(javaMethod);
 		} else {
 
 			// initial population of value from tag
@@ -248,7 +277,7 @@ public class JavadocStubber {
 			value = returnDocletTags[0].getValue();
 
 			if (Validator.isNull(value)) {
-				value = METHOD_RETURN_DESC;
+				value = _getReturnComment(javaMethod);
 			}
 		}
 
@@ -477,6 +506,17 @@ public class JavadocStubber {
 		commentElement.addCDATA(_getCDATA(value));
 	}
 
+	private String _addParagraphToMethodDetailComment(String detailedComment) {
+
+		StringBuffer details_sb = new StringBuffer();
+		details_sb.append(detailedComment);
+		details_sb.append("\n\n<p>\n");
+		details_sb.append(METHOD_DESC_DETAIL_PARAGRAGH_RANGE);
+		details_sb.append("\n</p>");
+
+		return details_sb.toString();
+	}
+
 	private void _addParamElement(
 			Element methodElement, JavaParameter javaParameter,
 			DocletTag[] paramDocletTags) {
@@ -523,10 +563,134 @@ public class JavadocStubber {
 
 		for (JavaParameter javaParameter : javaParameters) {
 			if (_isPublicEntity(javaMethod)) {
+
+				String paramName = javaParameter.getName();
+
+				StringBuffer sb = new StringBuffer();
+				if (javaParameter.getType().getJavaClass().isA("boolean")) {
+					sb.append(PARAM_BOOLEAN);
+				}
+				else if (paramName.endsWith("Id") ||
+						 paramName.endsWith("Pk") ||
+						 paramName.endsWith("PK")) {
+
+					sb.append(PARAM_ID);
+
+					int index = -1;
+					if (paramName.endsWith("Id")) {
+						index = paramName.indexOf("Id");
+					} else if (paramName.endsWith("Pk")) {
+						index = paramName.indexOf("Pk");
+					} else if (paramName.endsWith("PK")) {
+						index = paramName.indexOf("PK");
+					}
+
+					if (index > 0) {
+						String text =
+							splitCamelCase(paramName.substring(0, index));
+						String[] splitText =
+							StringUtil.split(text, StringPool.SPACE);
+						if (splitText.length >= 0) {
+							_appendSplitText(splitText, 0, sb);
+						}
+						else {
+							sb.append("something");
+						}
+					}
+					else {
+						sb.append("something");
+					}
+				}
+				else if (paramName.endsWith("Ids") ||
+						 paramName.endsWith("PKs")) {
+					sb.append(PARAM_IDS);
+
+					int index = -1;
+					if (paramName.endsWith("Ids")) {
+						index = paramName.indexOf("Ids");
+					} else if (paramName.endsWith("PKs")) {
+						index = paramName.indexOf("PKs");
+					}
+
+					if (index > 0) {
+						String text =
+							splitCamelCase(paramName.substring(0, index));
+						String[] splitText =
+							StringUtil.split(text, StringPool.SPACE);
+						if (splitText.length >= 0) {
+							_appendSplitText(splitText, 0, sb);
+							sb.append('s');
+						}
+						else {
+							sb.append("somethings");
+						}
+					}
+					else {
+						sb.append("somethings");
+					}
+				}
+				else if (paramName.endsWith("start")) {
+					sb.append(PARAM_START);
+				}
+				else if (paramName.endsWith("end")) {
+					sb.append(PARAM_END);
+				}
+				else if (paramName.endsWith("Context")) {
+					sb.append(PARAM_GENERAL_1);
+					String text = splitCamelCase(paramName);
+					String[] splitText =
+						StringUtil.split(text, StringPool.SPACE);
+					if (splitText.length >= 0) {
+						_appendSplitText(splitText, 0, sb);
+					} else {
+						sb.append("something");
+					}
+
+					sb.append(" Must specify what? Can specify what? " +
+						"(optionally <code>null</code>)");
+				}
+				else if (javaParameter.getType().getJavaClass().isA(
+					"java.util.Comparator")) {
+
+					sb.append(PARAM_COMPARATOR);
+				}
+				else if (javaParameter.getType().getJavaClass().isA(
+					"com.liferay.portal.kernel.search.Sort")) {
+
+					sb.append(PARAM_SORTER);
+				}
+				else {
+					sb.append(PARAM_GENERAL_1);
+					String text = splitCamelCase(paramName);
+					String[] splitText =
+						StringUtil.split(text, StringPool.SPACE);
+					if (splitText.length >= 0) {
+						_appendSplitText(splitText, 0, sb);
+					} else {
+						sb.append("something");
+					}
+
+					// append appropriate option
+					Type paramType = javaParameter.getType();
+					if (!paramType.isPrimitive()) {
+						sb.append(PARAM_GENERAL_2);
+						sb.append(" (optionally <code>null</code>)");
+					}
+					else if (paramType.getJavaClass().isA("int") ||
+							 paramType.getJavaClass().isA("long") ||
+							 paramType.getJavaClass().isA("double")) {
+						sb.append(PARAM_GENERAL_2);
+						sb.append(" (optionally <code>0</code>)");
+					}
+					else {
+						sb.append(PARAM_GENERAL_2);
+					}
+				}
+
 				_addNamedElement(methodElement, paramDocletTags,
-						javaParameter.getName(),
+						paramName,
 						javaParameter.getType().getValue(), "param",
-						METHOD_PARAM_DESC);
+						sb.toString());
 			}
 			else {
 				_addParamElement(
@@ -568,9 +732,9 @@ public class JavadocStubber {
 					getFullyQualifiedName();
 
 				if (SYSTEM_CLASS_NAME.equals(className)) {
-					comment = METHOD_THROWS_SYSTEM_EXCEPTION_DESC;
+					comment = THROWS_DESC_SYSTEM_EXCEPTION;
 				} else {
-					comment = METHOD_THROWS_DESC;
+					comment = THROWS_DESC;
 				}
 
 				_addNamedElement(
@@ -617,6 +781,19 @@ public class JavadocStubber {
 		Element commentElement = paramElement.addElement("comment");
 
 		commentElement.addCDATA(value);
+	}
+
+	private void _appendSplitText(
+		String[] splitText, int startIndex, StringBuffer sb) {
+
+		for (int ii = startIndex; ii < splitText.length; ii++) {
+			sb.append(StringPool.SPACE);
+			if (Pattern.matches("^.*[a-z]+.*$", splitText[ii])) {
+				sb.append(splitText[ii].toLowerCase());
+			} else {
+				sb.append(splitText[ii]);
+			}
+		}
 	}
 
 	private String _formatInlines(String text) {
@@ -675,7 +852,8 @@ public class JavadocStubber {
 		while (matcher.find()) {
 			String trimmed = _trimMultilineText(matcher.group());
 
-			// Escape dollar signs so they are not treated as replacement groups
+			// Escape dollar signs so they are not treated as replacement
+			// groups
 
 			trimmed = trimmed.replaceAll("\\$", "\\\\\\$");
 
@@ -787,7 +965,7 @@ public class JavadocStubber {
 		if (Validator.isNull(comment) ||
 			comment.trim().startsWith("Copyright"))
 		{
-			StringBuffer desc_sb = new StringBuffer(CLASS_DESC_INITIAL);
+			StringBuffer desc_sb = new StringBuffer(CLASS_DESC);
 			desc_sb.append("\n");
 			desc_sb.append("\n");
 			desc_sb.append(CLASS_DESC_DETAIL);
@@ -923,10 +1101,53 @@ public class JavadocStubber {
 		};
 
 		if (_isPublicEntity(javaMethod) && Validator.isNull(comment)) {
-			StringBuffer desc_sb = new StringBuffer(METHOD_DESC_INITIAL);
+			String initialComment = METHOD_DESC_GENERAL;
+			String detailedComment = METHOD_DESC_DETAIL;
+
+			if (_isGetterFetcherSearcher(javaMethod)) {
+				boolean hasCollectionReturn = _returnsCollection(javaMethod);
+
+				if (hasCollectionReturn) {
+					boolean hasRange = _hasRange(javaMethod);
+					boolean isOrdered = _isOrdered(javaMethod);
+
+					if (hasRange && isOrdered) {
+						initialComment = METHOD_DESC_RETURNS_ORDERED_RANGE;
+
+						detailedComment = _addParagraphToMethodDetailComment(
+							detailedComment);
+					}
+					else if (hasRange) {
+						initialComment = METHOD_DESC_RETURNS_RANGE;
+
+						detailedComment = _addParagraphToMethodDetailComment(
+							detailedComment);
+					}
+					else if (isOrdered) {
+						initialComment =
+							METHOD_DESC_RETURNS_ORDERED_COLLECTION;
+					}
+					else {
+						initialComment = METHOD_DESC_RETURNS_COLLECTION;
+					}
+				} else {
+					if (javaMethod.getName().endsWith("Count")) {
+						initialComment = METHOD_DESC_RETURNS_COUNT;
+					}
+					else {
+						initialComment = METHOD_DESC_GETTER;
+					}
+				}
+			} else if (_returnsBoolean(javaMethod)) {
+					initialComment = METHOD_DESC_RETURNS_BOOLEAN;
+			} else {
+				initialComment = METHOD_DESC_GENERAL;
+			}
+
+			StringBuffer desc_sb = new StringBuffer(initialComment);
 			desc_sb.append("\n");
 			desc_sb.append("\n");
-			desc_sb.append(METHOD_DESC_DETAIL);
+			desc_sb.append(detailedComment);
 			desc_sb.append("\n");
 			comment = desc_sb.toString();
 		}
@@ -978,6 +1199,45 @@ public class JavadocStubber {
 		return sb.toString();
 	}
 
+	private String _getReturnComment(JavaMethod javaMethod) {
+		String comment = RETURN_GENERAL;
+
+		if (_isGetterFetcherSearcher(javaMethod)) {
+			boolean hasCollectionReturn = _returnsCollection(javaMethod);
+
+			if (hasCollectionReturn) {
+				boolean hasRange = _hasRange(javaMethod);
+				boolean isOrdered = _isOrdered(javaMethod);
+
+				if (hasRange && isOrdered) {
+					comment = RETURN_ORDERED_RANGE;
+				}
+				else if (hasRange) {
+					comment = RETURN_RANGE;
+				}
+				else if (isOrdered) {
+					comment = RETURN_ORDERED_COLLECTION;
+				}
+				else {
+					comment = RETURN_COLLECTION;
+				}
+			} else {
+				if (javaMethod.getName().endsWith("Count")) {
+					comment = RETURN_COUNT;
+				}
+				else {
+					comment = METHOD_DESC_GETTER;
+				}
+			}
+		} else if (_returnsBoolean(javaMethod)) {
+			comment = RETURN_BOOLEAN;
+		} else {
+			comment = RETURN_GENERAL;
+		}
+
+		return comment;
+	}
+
 	private String _getSpacesIndent(int length) {
 		String indent = StringPool.BLANK;
 
@@ -1011,6 +1271,30 @@ public class JavadocStubber {
 		return false;
 	}
 
+	private boolean _hasRange(JavaMethod javaMethod) {
+		JavaParameter[] javaParameters = javaMethod.getParameters();
+
+		boolean hasStart = false;
+		boolean hasEnd = false;
+		for (JavaParameter javaParameter : javaParameters) {
+			String type = javaParameter.getType().getValue();
+
+			if (hasStart && hasEnd) {
+				break;
+			}
+
+			if (type.equals("int")) {
+				if (!hasStart && javaParameter.getName().equals("start")) {
+					hasStart = true;
+				} else if (!hasEnd && javaParameter.getName().equals("end")) {
+					hasEnd = true;
+				}
+			}
+		}
+
+		return (hasStart && hasEnd);
+	}
+
 	private boolean _isDeprecated(AbstractJavaEntity javaMethod) {
 
 		boolean isDeprecated = false;
@@ -1039,6 +1323,39 @@ public class JavadocStubber {
 		else {
 			return false;
 		}
+	}
+
+	private boolean _isGetterFetcherSearcher(JavaMethod javaMethod) {
+		Type returnType = javaMethod.getReturns();
+
+		if ((returnType == null) || returnType.isVoid()) {
+			return false;
+		}
+
+		if (javaMethod.getName().startsWith("get") ||
+			javaMethod.getName().startsWith("fetch") ||
+			javaMethod.getName().startsWith("search")) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	private boolean _isOrdered(JavaMethod javaMethod) {
+		JavaParameter[] javaParameters = javaMethod.getParameters();
+
+		for (JavaParameter javaParameter : javaParameters) {
+			String paramClass =
+				javaParameter.getType().getJavaClass().getName();
+
+			if (paramClass.equals("OrderByComparator")) {
+				return true;
+			} else if (paramClass.equals("Sort")) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private boolean  _isOverrideMethod(
@@ -1119,6 +1436,39 @@ public class JavadocStubber {
 		return isPublic;
 	}
 
+	private void _process(String fileName) throws Exception {
+		FileInputStream fis = new FileInputStream(
+				new File(_basedir + fileName));
+
+		byte[] bytes = new byte[fis.available()];
+
+		fis.read(bytes);
+
+		fis.close();
+
+		String originalContent = new String(bytes);
+
+		if (fileName.endsWith("JavadocFormatter.java") ||
+			fileName.endsWith("JavadocStubber.java") ||
+			fileName.endsWith("JavadocVerifier.java") ||
+			fileName.endsWith("SourceFormatter.java") ||
+			_isGenerated(originalContent)) {
+
+			return;
+		}
+
+		JavaClass javaClass = _getJavaClass(
+			fileName, new UnsyncStringReader(originalContent));
+
+		String javadocLessContent = _removeJavadocFromJava(
+			javaClass, originalContent);
+
+		Document document = _getJavadocDocument(javaClass);
+
+		_updateJavaFromDocument(
+			fileName, originalContent, javadocLessContent, document);
+	}
+
 	private String _removeJavadocFromJava(
 			JavaClass javaClass, String content) {
 
@@ -1180,37 +1530,42 @@ public class JavadocStubber {
 		return sb.toString().trim();
 	}
 
-	private void _process(String fileName) throws Exception {
-		FileInputStream fis = new FileInputStream(
-				new File(_basedir + fileName));
+	private boolean _returnsBoolean(JavaMethod javaMethod) {
+		Type returnType = javaMethod.getReturns();
 
-		byte[] bytes = new byte[fis.available()];
+		if ((returnType != null) &&
+			returnType.getJavaClass().isA("boolean")) {
 
-		fis.read(bytes);
+			return true;
+		} else {
+			return false;
+		}
+	}
 
-		fis.close();
+	private boolean _returnsCollection(JavaMethod javaMethod) {
 
-		String originalContent = new String(bytes);
+		Type returnType = javaMethod.getReturns();
+		if ((returnType == null) ||
+			returnType.isVoid() ||
+			returnType.isPrimitive()) {
 
-		if (fileName.endsWith("JavadocFormatter.java") ||
-			fileName.endsWith("JavadocStubber.java") ||
-			fileName.endsWith("JavadocVerifier.java") ||
-			fileName.endsWith("SourceFormatter.java") ||
-			_isGenerated(originalContent)) {
-
-			return;
+			return false;
 		}
 
-		JavaClass javaClass = _getJavaClass(
-			fileName, new UnsyncStringReader(originalContent));
+		JavaClass[] interfaces =
+			returnType.getJavaClass().getImplementedInterfaces();
 
-		String javadocLessContent = _removeJavadocFromJava(
-			javaClass, originalContent);
+		if (interfaces == null) {
+			return false;
+		}
 
-		Document document = _getJavadocDocument(javaClass);
+		for (JavaClass theInterface : interfaces) {
+			if (theInterface.isA("java.util.Collection")) {
+				return true;
+			}
+		}
 
-		_updateJavaFromDocument(
-			fileName, originalContent, javadocLessContent, document);
+		return false;
 	}
 
 	private String _trimMultilineText(String text) {
@@ -1244,7 +1599,8 @@ public class JavadocStubber {
 			_getJavaClassLineNumber(javaClass),
 			_getJavaClassComment(rootElement, javaClass));
 
-		Map<String, Element> methodElementsMap = new HashMap<String, Element>();
+		Map<String, Element> methodElementsMap =
+			new HashMap<String, Element>();
 
 		List<Element> methodElements = rootElement.elements("method");
 
@@ -1364,7 +1720,7 @@ public class JavadocStubber {
 		else {
 			text = _formatInlines(text);
 
-			text = StringUtil.wrap(text, 80 - indentLength, "\n");
+			text = StringUtil.wrap(text, MAX_COLUMNS - indentLength, "\n");
 		}
 
 		text = text.replaceAll("(?m)^", indent);
@@ -1376,7 +1732,7 @@ public class JavadocStubber {
 	private static final String CLASS_AUTHOR = "TODO your_name";
 	private static final String CLASS_DESC_DETAIL =
 		" TODO Detailed description to include class's abilities (optional).";
-	private static final String CLASS_DESC_INITIAL =
+	private static final String CLASS_DESC =
 		" TODO Initial description to introduce the class and its purpose.";
 	private static final String CLASS_USAGE_EXAMPLE =
 		" TODO Example usage expressed explicitly here and/or referred to " +
@@ -1385,18 +1741,81 @@ public class JavadocStubber {
 	private static final String FIELD_DESC =
 		" TODO Field description. What does field represent or indicate?";
 
+	private static final int MAX_COLUMNS = 79;
+
 	private static final String METHOD_DESC_DETAIL =
-		" TODO Detailed description, reference links and/or examples " +
+		"TODO Detailed description, reference links and/or examples " +
 		"(optional).";
-	private static final String METHOD_DESC_INITIAL =
+	private static final String METHOD_DESC_DETAIL_PARAGRAGH_RANGE =
+		"Useful when paginating results. Returns a maximum of <code>end - " +
+		"start</code> instances. <code>start</code> and <code>end</code> " +
+		"are not primary keys, they are indexes in the result set. Thus, " +
+		"<code>0</code> refers to the first result in the set. Setting both " +
+		"<code>start</code> and <code>end</code> to " +
+		"{@link com.liferay.portal.kernel.dao.orm.QueryUtil#ALL_POS} will " +
+		"return the full result set.";
+
+	private static final String METHOD_DESC_GENERAL =
 		" TODO Initial description of method's purpose.";
-	private static final String METHOD_PARAM_DESC =
-		" TODO Description, requirements, acceptable values";
-	private static final String METHOD_RETURN_DESC =
-		" TODO What is returned? Any special return values?";
-	private static final String METHOD_THROWS_DESC =
+	private static final String METHOD_DESC_GETTER =
+		" Returns the TODO something matching condition";
+	private static final String METHOD_DESC_RETURNS_BOOLEAN =
+		" Returns <code>true</code> if TODO some condition";
+	private static final String METHOD_DESC_RETURNS_COLLECTION =
+		" Returns all the TODO somethings matching condition";
+	private static final String METHOD_DESC_RETURNS_COUNT =
+		" Returns the number of TODO somethings matching condition";
+	private static final String METHOD_DESC_RETURNS_ORDERED_COLLECTION =
+		" Returns an ordered collection of all the TODO somethings matching " +
+		"the condition";
+	private static final String METHOD_DESC_RETURNS_ORDERED_RANGE =
+		" Returns an ordered range of all the TODO somethings matching the " +
+		"condition";
+	private static final String METHOD_DESC_RETURNS_RANGE =
+		" Returns a range of all the TODO somethings matching the condition";
+
+	private static final String PARAM_GENERAL_1 =
+		" the TODO something's ";
+	private static final String PARAM_GENERAL_2 =
+		", acceptable values?";
+	private static final String PARAM_BOOLEAN =
+		" whether to TODO do something";
+	private static final String PARAM_COMPARATOR =
+		"the comparator to order the TODO somethings (optionally " +
+		"<code>null</code>)";
+	private static final String PARAM_SORTER =
+		"the field and direction by which to sort TODO (optionally " +
+		"<code>null</code>)";
+	private static final String PARAM_END =
+		" the TODO upper bound of the range of results (not inclusive)";
+	private static final String PARAM_ID =
+		" the primary key of the TODO something's ";
+	private static final String PARAM_IDS =
+		" the primary keys of the TODO something's ";
+	private static final String PARAM_START =
+		" the TODO lower bound of the range of results";
+
+	private static final String RETURN_GENERAL =
+		" the TODO something, any special return values?";
+	private static final String RETURN_BOOLEAN =
+		" <code>true</code> if the TODO something meets some condition; " +
+		"<code>false</code> otherwise";
+	private static final String RETURN_COLLECTION =
+		" the TODO somethings, any special return values?";
+	private static final String RETURN_COUNT =
+		" the number of TODO somethings matching the condition";
+	private static final String RETURN_ORDERED_COLLECTION =
+		" the ordered collection of TODO somethings matching the condition " +
+		"ordered by <code>someParam</code> or some means";
+	private static final String RETURN_ORDERED_RANGE =
+		" the ordered range of TODO somethings matching the condition " +
+		"ordered by <code>someParam</code> or some means";
+	private static final String RETURN_RANGE =
+		" the range of TODO somethings matching the condition";
+
+	private static final String THROWS_DESC =
 		" TODO list exceptional conditions that could have occurred";
-	private static final String METHOD_THROWS_SYSTEM_EXCEPTION_DESC =
+	private static final String THROWS_DESC_SYSTEM_EXCEPTION =
 		" if a system exception occurred";
 
 	private static final String SYSTEM_CLASS_NAME =
