@@ -796,11 +796,12 @@ public class ResourceBlockLocalServiceImpl
 					break;
 				}
 				else {
-					// Prevent Hibernate from automatically persisting changes and
-					// overwriting the update here.
+					// Prevent Hibernate from automatically persisting changes
+					// and overwriting the update here.
 					session.evict(resourceBlock);
 
-					SQLQuery sqlQuery = session.createSQLQuery(_SQL_UPDATE_RETAIN);
+					SQLQuery sqlQuery = session.createSQLQuery(
+						_SQL_UPDATE_RETAIN);
 
 					QueryPos qPos = QueryPos.getInstance(sqlQuery);
 
@@ -891,15 +892,15 @@ public class ResourceBlockLocalServiceImpl
 		updateResourceBlock(resourceBlock);
 	}
 
-	private static final String _SQL_UPDATE_RETAIN =
-		"UPDATE ResourceBlock SET referenceCount = (referenceCount + 1) WHERE" +
-		" referenceCount > 0 AND resourceBlockId = ?";
-	private static final String _SQL_UPDATE_RELEASE =
-		"UPDATE ResourceBlock SET referenceCount = (referenceCount - 1) WHERE" +
-		" resourceBlockId = ?";
 	private static final String _SQL_DELETE_RELEASED =
 		"DELETE FROM ResourceBlock WHERE referenceCount <= 0 AND " +
 		"resourceBlockId = ?";
+	private static final String _SQL_UPDATE_RELEASE =
+		"UPDATE ResourceBlock SET referenceCount = (referenceCount - 1) WHERE" +
+		" resourceBlockId = ?";
+	private static final String _SQL_UPDATE_RETAIN =
+		"UPDATE ResourceBlock SET referenceCount = (referenceCount + 1) WHERE" +
+		" referenceCount > 0 AND resourceBlockId = ?";
 
 	private static Log _log = LogFactoryUtil.getLog(
 		ResourceBlockLocalServiceImpl.class);
