@@ -14,8 +14,10 @@
 
 package com.liferay.portal.service.impl;
 
-import com.liferay.portal.NoSuchResourceBlockException;
 import com.liferay.portal.ResourceBlocksNotSupportedException;
+import com.liferay.portal.kernel.dao.orm.QueryPos;
+import com.liferay.portal.kernel.dao.orm.SQLQuery;
+import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
@@ -389,16 +391,7 @@ public class ResourceBlockLocalServiceImpl
 			PermissionedModel permissionedModel)
 		throws PortalException, SystemException {
 
-		try {
-			releaseResourceBlock(permissionedModel.getResourceBlockId());
-		}
-		catch (NoSuchResourceBlockException nsrbe) {
-			if (_log.isWarnEnabled()) {
-				_log.warn(
-					"Resource block " + permissionedModel.getResourceBlockId() +
-						" missing");
-			}
-		}
+		releaseResourceBlock(permissionedModel.getResourceBlockId());
 	}
 
 	public void releasePermissionedModelResourceBlock(String name, long primKey)
@@ -421,11 +414,30 @@ public class ResourceBlockLocalServiceImpl
 	 * @throws SystemException if a system exception occurred
 	 */
 	public void releaseResourceBlock(long resourceBlockId)
-		throws PortalException, SystemException {
+		throws SystemException {
 
-		ResourceBlock resourceBlock = getResourceBlock(resourceBlockId);
+		Session session = resourceBlockPersistence.openSession();
 
-		releaseResourceBlock(resourceBlock);
+		try {
+			SQLQuery sqlQuery = session.createSQLQuery(_SQL_UPDATE_RELEASE);
+
+			QueryPos qPos = QueryPos.getInstance(sqlQuery);
+
+			qPos.add(resourceBlockId);
+
+			sqlQuery.executeUpdate();
+
+			sqlQuery = session.createSQLQuery(_SQL_DELETE_RELEASED);
+
+			qPos = QueryPos.getInstance(sqlQuery);
+
+			qPos.add(resourceBlockId);
+
+			sqlQuery.executeUpdate();
+		}
+		finally {
+			resourceBlockPersistence.closeSession(session);
+		}
 	}
 
 	/**
@@ -439,16 +451,7 @@ public class ResourceBlockLocalServiceImpl
 	public void releaseResourceBlock(ResourceBlock resourceBlock)
 		throws SystemException {
 
-		long referenceCount = resourceBlock.getReferenceCount() - 1;
-
-		if (referenceCount <= 0) {
-			deleteResourceBlock(resourceBlock);
-			return;
-		}
-
-		resourceBlock.setReferenceCount(referenceCount);
-
-		updateResourceBlock(resourceBlock);
+		releaseResourceBlock(resourceBlock.getResourceBlockId());
 	}
 
 	public void removeAllGroupScopePermissions(
@@ -561,38 +564,6 @@ public class ResourceBlockLocalServiceImpl
 		updateIndividualScopePermissions(
 			companyId, groupId, name, permissionedModel, roleId, actionIdsLong,
 			ResourceBlockConstants.OPERATOR_REMOVE);
-	}
-
-	/**
-	 * Increments the reference count of the resource block and updates it in
-	 * the database.
-	 *
-	 * @param  resourceBlockId the primary key of the resource block
-	 * @throws PortalException if a resource block with the primary key could
-	 *         not be found
-	 * @throws SystemException if a system exception occurred
-	 */
-	public void retainResourceBlock(long resourceBlockId)
-		throws PortalException, SystemException {
-
-		ResourceBlock resourceBlock = getResourceBlock(resourceBlockId);
-
-		retainResourceBlock(resourceBlock);
-	}
-
-	/**
-	 * Increments the reference count of the resource block and updates it in
-	 * the database.
-	 *
-	 * @param  resourceBlock the resource block
-	 * @throws SystemException if a system exception occurred
-	 */
-	public void retainResourceBlock(ResourceBlock resourceBlock)
-		throws SystemException {
-
-		resourceBlock.setReferenceCount(resourceBlock.getReferenceCount() + 1);
-
-		updateResourceBlock(resourceBlock);
 	}
 
 	public void setCompanyScopePermissions(
@@ -809,20 +780,46 @@ public class ResourceBlockLocalServiceImpl
 			ResourceBlockPermissionsContainer resourceBlockPermissionsContainer)
 		throws SystemException {
 
-		ResourceBlock resourceBlock = resourceBlockPersistence.fetchByC_G_N_P(
-			companyId, groupId, name, permissionsHash);
+		Session session = resourceBlockPersistence.openSession();
 
-		if (resourceBlock == null) {
-			resourceBlock = addResourceBlock(
-				companyId, groupId, name, permissionsHash,
-				resourceBlockPermissionsContainer);
+		ResourceBlock resourceBlock;
+
+		try {
+			while (true) {
+				resourceBlock = resourceBlockPersistence.fetchByC_G_N_P(
+					companyId, groupId, name, permissionsHash);
+
+				if (resourceBlock == null) {
+					resourceBlock = addResourceBlock(
+						companyId, groupId, name, permissionsHash,
+						resourceBlockPermissionsContainer);
+					break;
+				}
+				else {
+					// Prevent Hibernate from automatically persisting changes and
+					// overwriting the update here.
+					session.evict(resourceBlock);
+
+					SQLQuery sqlQuery = session.createSQLQuery(_SQL_UPDATE_RETAIN);
+
+					QueryPos qPos = QueryPos.getInstance(sqlQuery);
+
+					qPos.add(resourceBlock.getResourceBlockId());
+
+					int affectRows = sqlQuery.executeUpdate();
+
+					if (affectRows > 0) {
+						break;
+					}
+				}
+			}
 		}
-		else {
-			retainResourceBlock(resourceBlock);
+		finally {
+			resourceBlockPersistence.closeSession(session);
 		}
 
 		permissionedModel.setResourceBlockId(
-			resourceBlock.getResourceBlockId());
+				resourceBlock.getResourceBlockId());
 
 		permissionedModel.persist();
 
@@ -893,6 +890,16 @@ public class ResourceBlockLocalServiceImpl
 
 		updateResourceBlock(resourceBlock);
 	}
+
+	private static final String _SQL_UPDATE_RETAIN =
+		"UPDATE ResourceBlock SET referenceCount = (referenceCount + 1) WHERE" +
+		" referenceCount > 0 AND resourceBlockId = ?";
+	private static final String _SQL_UPDATE_RELEASE =
+		"UPDATE ResourceBlock SET referenceCount = (referenceCount - 1) WHERE" +
+		" resourceBlockId = ?";
+	private static final String _SQL_DELETE_RELEASED =
+		"DELETE FROM ResourceBlock WHERE referenceCount <= 0 AND " +
+		"resourceBlockId = ?";
 
 	private static Log _log = LogFactoryUtil.getLog(
 		ResourceBlockLocalServiceImpl.class);
