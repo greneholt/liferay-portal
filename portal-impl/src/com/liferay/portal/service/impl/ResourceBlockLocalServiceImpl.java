@@ -22,6 +22,9 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.transaction.Isolation;
+import com.liferay.portal.kernel.transaction.Propagation;
+import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.Digester;
 import com.liferay.portal.kernel.util.DigesterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -173,7 +176,7 @@ public class ResourceBlockLocalServiceImpl
 		resourceBlock.setPermissionsHash(permissionsHash);
 		resourceBlock.setReferenceCount(1);
 
-		updateResourceBlock(resourceBlock);
+		updateResourceBlock(resourceBlock, false);
 
 		resourceBlockPermissionLocalService.addResourceBlockPermissions(
 			resourceBlockId, resourceBlockPermissionsContainer);
@@ -413,6 +416,9 @@ public class ResourceBlockLocalServiceImpl
 	 *         not be found
 	 * @throws SystemException if a system exception occurred
 	 */
+	@Transactional(
+		propagation= Propagation.REQUIRES_NEW,
+		isolation= Isolation.READ_COMMITTED)
 	public void releaseResourceBlock(long resourceBlockId)
 		throws SystemException {
 
@@ -774,6 +780,9 @@ public class ResourceBlockLocalServiceImpl
 		PermissionCacheUtil.clearCache();
 	}
 
+	@Transactional(
+		propagation= Propagation.REQUIRES_NEW,
+		isolation= Isolation.READ_COMMITTED)
 	public ResourceBlock updateResourceBlockId(
 			long companyId, long groupId, String name,
 			PermissionedModel permissionedModel, String permissionsHash,
@@ -787,12 +796,23 @@ public class ResourceBlockLocalServiceImpl
 		try {
 			while (true) {
 				resourceBlock = resourceBlockPersistence.fetchByC_G_N_P(
-					companyId, groupId, name, permissionsHash);
+					companyId, groupId, name, permissionsHash, false);
 
 				if (resourceBlock == null) {
-					resourceBlock = addResourceBlock(
-						companyId, groupId, name, permissionsHash,
-						resourceBlockPermissionsContainer);
+					try {
+						resourceBlock = addResourceBlock(
+							companyId, groupId, name, permissionsHash,
+							resourceBlockPermissionsContainer);
+
+						session.flush();
+					}
+					catch (SystemException se) {
+						_log.warn(
+							"Failed to insert a new resource block, retrying.",
+							se);
+
+						continue;
+					}
 					break;
 				}
 				else {
