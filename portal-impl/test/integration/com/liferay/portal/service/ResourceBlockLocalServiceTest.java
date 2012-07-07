@@ -65,7 +65,7 @@ public class ResourceBlockLocalServiceTest {
 
 		for (int i = 0; i < increaseCountValue; i++) {
 			PermissionedModel permissionedModel = new MockPermissionedModel();
-			permissionedModel.setResourceBlockId(-2);
+			permissionedModel.setResourceBlockId(NOT_READY);
 
 			callables.add(new UpdateResourceBlockIdCallable(
 				permissionedModel, permissionsHash, resourceBlockPermissionsContainer));
@@ -274,7 +274,7 @@ public class ResourceBlockLocalServiceTest {
 		}
 
 		public Void call() throws Exception {
-			while (_permissionedModel.getResourceBlockId() == -2) {
+			while (_permissionedModel.getResourceBlockId() == NOT_READY) {
 				Thread.sleep(100);
 			}
 
@@ -335,5 +335,6 @@ public class ResourceBlockLocalServiceTest {
 	private static final long COMPANY_ID = -1;
 	private static final long GROUP_ID = -1;
 	private static final String MODEL_NAME = "permissionedmodel";
+	private static final long NOT_READY = -2;
 	private static final long ROLE_ID = -1;
 }
