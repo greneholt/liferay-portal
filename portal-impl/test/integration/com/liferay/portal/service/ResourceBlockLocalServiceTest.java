@@ -32,7 +32,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -58,8 +57,6 @@ public class ResourceBlockLocalServiceTest {
 
 		long increaseCountValue = 1000;
 		int threadCount = 10;
-
-		Semaphore semaphore = new Semaphore(0);
 
 		List<Callable<Void>> callables = new ArrayList<Callable<Void>>();
 
