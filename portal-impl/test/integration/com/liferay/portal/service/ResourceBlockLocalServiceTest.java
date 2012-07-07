@@ -65,11 +65,11 @@ public class ResourceBlockLocalServiceTest {
 
 		for (int i = 0; i < increaseCountValue; i++) {
 			PermissionedModel permissionedModel = new MockPermissionedModel();
-			permissionedModel.setResourceBlockId(-1);
+			permissionedModel.setResourceBlockId(-2);
 
 			callables.add(new UpdateResourceBlockIdCallable(
-				permissionedModel, permissionsHash, resourceBlockPermissionsContainer, semaphore));
-			callables.add(new ReleaseResourceBlockCallable(resourceBlockId, semaphore));
+				permissionedModel, permissionsHash, resourceBlockPermissionsContainer));
+			callables.add(new ReleaseResourceBlockCallable(permissionedModel));
 		}
 
 		ExecutorService executorService = Executors.newFixedThreadPool(
@@ -85,7 +85,7 @@ public class ResourceBlockLocalServiceTest {
 
 		assertNoSuchResourceBlock(COMPANY_ID, GROUP_ID, MODEL_NAME);
 	}
-/*
+
 	@Test
 	public void testConcurrentReleaseResourceBlock() throws Exception {
 		long resourceBlockId = -1;
@@ -94,11 +94,13 @@ public class ResourceBlockLocalServiceTest {
 
 		createResourceBlock(resourceBlockId, initCountValue);
 
+		PermissionedModel permissionedModel = new MockPermissionedModel();
+		permissionedModel.setResourceBlockId(resourceBlockId);
+
 		List<Callable<Void>> callables = new ArrayList<Callable<Void>>();
 
 		for (int i = 0; i < initCountValue; i++) {
-			callables.add(new ReleaseResourceBlockCallable(
-				resourceBlockId, null));
+			callables.add(new ReleaseResourceBlockCallable(permissionedModel));
 		}
 
 		ExecutorService executorService = Executors.newFixedThreadPool(
@@ -136,7 +138,7 @@ public class ResourceBlockLocalServiceTest {
 		for (int i = 0; i < increaseCountValue; i++) {
 			callables.add(
 				new UpdateResourceBlockIdCallable(permissionedModel,
-					permissionsHash, resourceBlockPermissionsContainer, null));
+					permissionsHash, resourceBlockPermissionsContainer));
 		}
 
 		ExecutorService executorService = Executors.newFixedThreadPool(
@@ -153,7 +155,7 @@ public class ResourceBlockLocalServiceTest {
 		assertResourceBlockReferenceCount(
 			permissionedModel.getResourceBlockId(), increaseCountValue);
 	}
-*/
+
 	private void assertNoSuchResourceBlock(
 			long companyId, long groupId, String name)
 		throws Exception {
@@ -267,23 +269,22 @@ public class ResourceBlockLocalServiceTest {
 
 	private class ReleaseResourceBlockCallable implements Callable<Void>{
 
-		public ReleaseResourceBlockCallable(long resourceBlockId, Semaphore semaphore) {
-			_resourceBlockId = resourceBlockId;
-			_semaphore = semaphore;
+		public ReleaseResourceBlockCallable(PermissionedModel permissionedModel) {
+			_permissionedModel = permissionedModel;
 		}
 
 		public Void call() throws Exception {
-			if (_semaphore != null) {
-				_semaphore.acquire();
+			while (_permissionedModel.getResourceBlockId() == -2) {
+				Thread.sleep(100);
 			}
 
-			ResourceBlockLocalServiceUtil.releaseResourceBlock(_resourceBlockId);
+			ResourceBlockLocalServiceUtil.releasePermissionedModelResourceBlock(
+				_permissionedModel);
 
 			return null;
 		}
 
-		private final long _resourceBlockId;
-		private final Semaphore _semaphore;
+		private final PermissionedModel _permissionedModel;
 	}
 
 	private class UpdateResourceBlockIdCallable implements Callable<Void>{
@@ -291,26 +292,18 @@ public class ResourceBlockLocalServiceTest {
 		public UpdateResourceBlockIdCallable(
 				PermissionedModel permissionedModel, String permissionsHash,
 				ResourceBlockPermissionsContainer
-				resourceBlockPermissionsContainer, Semaphore semaphore) {
+				resourceBlockPermissionsContainer) {
 
 			_permissionedModel = permissionedModel;
 			_permissionsHash = permissionsHash;
 			_resourceBlockPermissionsContainer =
 				resourceBlockPermissionsContainer;
-			_semaphore = semaphore;
 		}
 
 		public Void call() throws Exception {
-			if (_semaphore != null) {
-				_semaphore.release();
-			}
-
 			ResourceBlockLocalServiceUtil.updateResourceBlockId(
 				COMPANY_ID, GROUP_ID, MODEL_NAME, _permissionedModel,
 				_permissionsHash, _resourceBlockPermissionsContainer);
-
-			long resourceBlockId = _permissionedModel.getResourceBlockId();
-			System.out.println("Resource block id = " + resourceBlockId);
 
 			return null;
 		}
@@ -319,7 +312,6 @@ public class ResourceBlockLocalServiceTest {
 		private final String _permissionsHash;
 		private final ResourceBlockPermissionsContainer
 			_resourceBlockPermissionsContainer;
-		private final Semaphore _semaphore;
 	}
 
 	private class MockPermissionedModel implements PermissionedModel {
